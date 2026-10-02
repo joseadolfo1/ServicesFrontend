@@ -1,0 +1,39 @@
+# ============================================================
+#  Configuración de nginx para una SPA (React) + proxy a la API
+#  Al arrancar el contenedor, ${BACKEND_URL} y ${NGINX_LOCAL_RESOLVERS}
+#  se reemplazan por el valor de esas variables de entorno.
+# ============================================================
+server {
+    listen 80;
+    root /usr/share/nginx/html;
+    index index.html;
+
+    # 1) /api/... se reenvía al backend. El navegador solo ve una dirección: sin CORS.
+    location /api/ {
+        resolver ${NGINX_LOCAL_RESOLVERS} valid=10s ipv6=off;
+        set $backend "${BACKEND_URL}";
+        proxy_pass $backend;
+        proxy_set_header Host $proxy_host;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_ssl_server_name on;
+        proxy_read_timeout 90s;
+    }
+
+    # 2) Las rutas de React (/products/42, /cart...) no son archivos:
+    #    si no existe el archivo, se entrega index.html y React decide.
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+
+    # 3) Los archivos compilados llevan un código en el nombre: se guardan 1 año
+    location /assets/ {
+        expires 1y;
+        add_header Cache-Control "public, immutable";
+    }
+
+    # 4) index.html nunca se guarda: así siempre apunta a la versión nueva
+    location = /index.html {
+        add_header Cache-Control "no-cache";
+    }
+}

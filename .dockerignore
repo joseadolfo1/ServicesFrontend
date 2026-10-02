@@ -1,0 +1,12 @@
+# Lo que NO se manda a Docker al construir la imagen
+node_modules/
+dist/
+coverage/
+.git/
+.github/
+.vscode/
+.env
+.env.*
+k8s/
+docker-compose*.yml
+datos/
